@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewClicked|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagDefault|flagRequestTouchExplorationMode|flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
+    android:accessibilityFlags="flagDefault|flagReportViewIds|flagRequestFilterKeyEvents|flagIncludeNotImportantViews"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
-    android:canRequestTouchExplorationMode="false"
-    android:canRequestEnhancedWebAccessibility="false"
-    android:canRequestFilterKeyEvents="false"
     android:notificationTimeout="100"
-    android:description="@string/accessibility_service_description" />
+    android:packageNames="com.tencent.mobileqq"
+    android:description="@string/service_desc" />

@@ -1,229 +1,269 @@
 package com.example.qqautotask;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
-/**
- * 主界面
- * 提供开始任务、打开QQ、无障碍设置三个按钮
- * 实时显示日志并自动滚动
- */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity";
+
     private TextView tvStatus;
+    private TextView tvDebug;
     private TextView tvLog;
-    private ScrollView scrollLog;
-    private Button btnStart;
-
+    private ScrollView svLog;
+    private Button btnToggle;
     private boolean isTaskRunning = false;
-
-    private static final SimpleDateFormat TIME_FORMAT =
-            new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initViews();
-        initListeners();
+        tvStatus = findViewById(R.id.tv_status);
+        tvDebug = findViewById(R.id.tv_debug);
+        tvLog = findViewById(R.id.tv_log);
+        svLog = findViewById(R.id.sv_log);
+        btnToggle = findViewById(R.id.btn_toggle);
+        Button btnOpenQQ = findViewById(R.id.btn_open_qq);
+        Button btnSettings = findViewById(R.id.btn_settings);
+
+        tvLog.setMovementMethod(new ScrollingMovementMethod());
 
         // 加载历史日志
-        loadHistoryLog();
-
-        // 注册日志监听
-        QQAutoService.setLogListener(log -> runOnUiThread(() -> appendLog(log)));
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // 清除日志监听
-        QQAutoService.setLogListener(null);
-    }
-
-    /**
-     * 初始化视图
-     */
-    private void initViews() {
-        tvStatus = findViewById(R.id.tvStatus);
-        tvLog = findViewById(R.id.tvLog);
-        scrollLog = findViewById(R.id.scrollLog);
-        btnStart = findViewById(R.id.btnStart);
-    }
-
-    /**
-     * 初始化按钮监听
-     */
-    private void initListeners() {
-        findViewById(R.id.btnStart).setOnClickListener(v -> onStartClick());
-        findViewById(R.id.btnOpenQQ).setOnClickListener(v -> openQQ());
-        findViewById(R.id.btnAccessibility).setOnClickListener(v -> openAccessibilitySettings());
-    }
-
-    /**
-     * 加载历史日志
-     */
-    private void loadHistoryLog() {
-        List<String> history = QQAutoService.getLogBuffer();
-        for (String log : history) {
+        for (String log : QQAutoService.getLogBuffer()) {
             appendLog(log);
         }
-    }
 
-    // ==================== 按钮点击事件 ====================
+        // 设置日志监听
+        QQAutoService.setLogListener(this::appendLog);
 
-    /**
-     * 开始/停止任务按钮点击
-     */
-    private void onStartClick() {
-        if (isTaskRunning) {
-            // 停止任务
-            QQAutoService service = QQAutoServiceRef.getInstance();
-            if (service != null) {
-                service.stopAutoTask();
-            }
-            updateStatus("已停止", false);
-            btnStart.setText("开始自动任务");
-            isTaskRunning = false;
-            appendLog("[界面] 用户手动停止任务");
-        } else {
-            // 检查无障碍服务是否启用
-            if (!isAccessibilityServiceEnabled()) {
-                appendLog("[界面] 无障碍服务未启用，请先开启");
-                updateStatus("需要无障碍权限", false);
+        // 开始/停止按钮
+        btnToggle.setOnClickListener(v -> {
+            if (!isAccessibilityEnabled()) {
+                Toast.makeText(this, "请先开启无障碍服务", Toast.LENGTH_LONG).show();
                 openAccessibilitySettings();
                 return;
             }
-
-            // 检查无障碍服务实例
-            QQAutoService service = QQAutoServiceRef.getInstance();
-            if (service == null) {
-                appendLog("[界面] 无障碍服务未连接，请确保服务已开启");
-                updateStatus("服务未连接", false);
-                return;
+            if (isTaskRunning) {
+                stopTask();
+            } else {
+                startTask();
             }
+        });
 
-            // 先启动QQ，延迟3秒后启动引擎
-            appendLog("[界面] 正在启动QQ...");
-            updateStatus("启动QQ中...", true);
-            openQQ();
+        // 打开QQ按钮 - 多种方式尝试
+        btnOpenQQ.setOnClickListener(v -> openQQ());
 
-            btnStart.postDelayed(() -> {
-                appendLog("[界面] 启动任务引擎...");
-                updateStatus("任务执行中...", true);
-                service.startAutoTask();
-                btnStart.setText("停止任务");
-                isTaskRunning = true;
-            }, 3000);
-        }
+        // 无障碍设置按钮
+        btnSettings.setOnClickListener(v -> openAccessibilitySettings());
+
+        updateStatus();
     }
 
-    /**
-     * 打开QQ
-     * 使用直接 Intent 方式，兼容 Android 11+ 包可见性限制
-     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateStatus();
+    }
+
+    // ===================== 打开QQ（多重尝试） =====================
+
     private void openQQ() {
+        // 方式1：用 Action + Package
         try {
-            Intent intent = new Intent();
-            intent.setClassName("com.tencent.mobileqq", "com.tencent.mobileqq.activity.SplashActivity");
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            intent.setPackage(TaskConfig.QQ_PACKAGE);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-            appendLog("[界面] 已启动QQ");
+            Log.d(TAG, "QQ 启动成功(方式1)");
+            return;
         } catch (Exception e) {
-            appendLog("[界面] 未安装QQ");
-            updateStatus("未安装QQ", false);
+            Log.d(TAG, "QQ 启动方式1失败: " + e.getMessage());
         }
-    }
 
-    /**
-     * 打开无障碍设置页面
-     */
-    private void openAccessibilitySettings() {
+        // 方式2：指定 Activity
         try {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Intent intent = new Intent();
+            intent.setComponent(new ComponentName(
+                    TaskConfig.QQ_PACKAGE,
+                    "com.tencent.mobileqq.activity.SplashActivity"));
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-            appendLog("[界面] 已打开无障碍设置");
+            Log.d(TAG, "QQ 启动成功(方式2)");
+            return;
         } catch (Exception e) {
-            appendLog("[界面] 打开设置失败: " + e.getMessage());
+            Log.d(TAG, "QQ 启动方式2失败: " + e.getMessage());
         }
-    }
 
-    // ==================== 状态更新 ====================
-
-    /**
-     * 更新状态显示
-     */
-    private void updateStatus(String status, boolean isRunning) {
-        tvStatus.setText(status);
-        if (isRunning) {
-            tvStatus.setTextColor(getColor(R.color.primary_green_light));
-        } else {
-            tvStatus.setTextColor(getColor(R.color.text_secondary));
-        }
-    }
-
-    // ==================== 日志 ====================
-
-    /**
-     * 追加日志并自动滚动到底部
-     */
-    private void appendLog(String message) {
-        String time = TIME_FORMAT.format(new Date());
-        String logLine = "[" + time + "] " + message + "\n";
-
-        tvLog.append(logLine);
-
-        // 自动滚动到底部
-        scrollLog.post(() -> scrollLog.fullScroll(ScrollView.FOCUS_DOWN));
-    }
-
-    // ==================== 无障碍检查 ====================
-
-    /**
-     * 检查本应用的无障碍服务是否已启用
-     * 使用 Settings.Secure 方式，兼容 Android 15 / HyperOS
-     */
-    private boolean isAccessibilityServiceEnabled() {
+        // 方式3：PackageManager
         try {
-            String expectedId = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
-            String expectedId2 = getPackageName() + "/." + QQAutoService.class.getSimpleName();
+            Intent intent = getPackageManager().getLaunchIntentForPackage(TaskConfig.QQ_PACKAGE);
+            if (intent != null) {
+                startActivity(intent);
+                Log.d(TAG, "QQ 启动成功(方式3)");
+                return;
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "QQ 启动方式3失败: " + e.getMessage());
+        }
 
-            String enabledServices = Settings.Secure.getString(
+        Toast.makeText(this, "无法启动QQ，请确认已安装", Toast.LENGTH_SHORT).show();
+    }
+
+    // ===================== 任务控制 =====================
+
+    private void startTask() {
+        // 先启动QQ
+        openQQ();
+
+        // 延迟启动任务，等待QQ加载
+        tvLog.postDelayed(() -> {
+            QQAutoService service = QQAutoServiceRef.getInstance();
+            if (service != null) {
+                service.startAutoTask();
+                isTaskRunning = true;
+                updateStatus();
+                appendLog("任务已启动");
+            } else {
+                appendLog("错误：无法获取无障碍服务实例");
+                Toast.makeText(this, "服务未就绪，请稍后重试", Toast.LENGTH_SHORT).show();
+            }
+        }, 3000);
+    }
+
+    private void stopTask() {
+        QQAutoService service = QQAutoServiceRef.getInstance();
+        if (service != null) {
+            service.stopAutoTask();
+        }
+        isTaskRunning = false;
+        updateStatus();
+        appendLog("任务已停止");
+    }
+
+    // ===================== UI 更新 =====================
+
+    private void appendLog(String log) {
+        runOnUiThread(() -> {
+            tvLog.append(log + "\n");
+            svLog.post(() -> svLog.fullScroll(ScrollView.FOCUS_DOWN));
+        });
+    }
+
+    private void updateStatus() {
+        boolean enabled = isAccessibilityEnabled();
+
+        // 调试信息
+        String myService = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
+        String enabledRaw = Settings.Secure.getString(
+                getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        tvDebug.setText("期望ID: " + myService + "\n"
+                + "已启用: " + (enabledRaw != null ? enabledRaw : "null"));
+
+        if (!enabled) {
+            tvStatus.setText("无障碍服务未开启");
+            tvStatus.setTextColor(0xFFFF6B6B);
+            btnToggle.setText("开启无障碍服务");
+        } else if (isTaskRunning) {
+            tvStatus.setText("正在执行任务...");
+            tvStatus.setTextColor(0xFF69DB7C);
+            btnToggle.setText("停止任务");
+        } else {
+            tvStatus.setText("就绪");
+            tvStatus.setTextColor(0xFF69DB7C);
+            btnToggle.setText("开始自动任务");
+        }
+    }
+
+    // ===================== 无障碍服务检测 =====================
+
+    private boolean isAccessibilityEnabled() {
+        String myService = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
+        String myServiceShort = getPackageName() + "/." + QQAutoService.class.getSimpleName();
+
+        // 方法1：Settings.Secure（冒号分隔）
+        try {
+            String enabled = Settings.Secure.getString(
                     getContentResolver(),
-                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            );
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (enabled != null && !enabled.isEmpty()) {
+                String[] services = enabled.split(":");
+                for (String s : services) {
+                    s = s.trim();
+                    if (s.equalsIgnoreCase(myService) || s.equalsIgnoreCase(myServiceShort)) {
+                        Log.d(TAG, "方法1检测到服务: " + s);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "方法1异常: " + e.getMessage());
+        }
 
-            if (enabledServices == null || enabledServices.isEmpty()) return false;
-
-            // 澎湃OS 可能用 : 分隔多个服务
-            String[] services = enabledServices.split(":");
-            for (String service : services) {
-                service = service.trim();
-                if (service.equalsIgnoreCase(expectedId) || service.equalsIgnoreCase(expectedId2)) {
+        // 方法2：AccessibilityManager 正在运行的服务
+        try {
+            AccessibilityManager am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+            List<AccessibilityServiceInfo> running = am.getEnabledAccessibilityServiceList(
+                    AccessibilityServiceInfo.FEEDBACK_GENERIC);
+            for (AccessibilityServiceInfo info : running) {
+                String id = info.getId();
+                if (id != null && (id.equals(myService) || id.equals(myServiceShort))) {
+                    Log.d(TAG, "方法2检测到服务: " + id);
                     return true;
                 }
             }
-            return false;
         } catch (Exception e) {
-            return false;
+            Log.d(TAG, "方法2异常: " + e.getMessage());
+        }
+
+        // 方法3：检查已安装的服务列表中是否有本服务且 enabled
+        try {
+            AccessibilityManager am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+            List<AccessibilityServiceInfo> installed = am.getInstalledAccessibilityServiceList();
+            for (AccessibilityServiceInfo info : installed) {
+                String id = info.getId();
+                if (id != null && (id.equals(myService) || id.equals(myServiceShort))) {
+                    String enabled = Settings.Secure.getString(
+                            getContentResolver(),
+                            "enabled_accessibility_services");
+                    if (enabled != null && enabled.contains(getPackageName())) {
+                        Log.d(TAG, "方法3检测到服务");
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "方法3异常: " + e.getMessage());
+        }
+
+        Log.d(TAG, "未检测到无障碍服务已启用");
+        return false;
+    }
+
+    // ===================== 辅助 =====================
+
+    private void openAccessibilitySettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } catch (Exception e) {
+            Toast.makeText(this, "无法打开无障碍设置", Toast.LENGTH_SHORT).show();
         }
     }
 }

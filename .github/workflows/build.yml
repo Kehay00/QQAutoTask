@@ -5,13 +5,14 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
       - name: Checkout repository
@@ -34,9 +35,9 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assembleDebug
 
-      - name: Upload debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: QQAutoTask-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

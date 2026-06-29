@@ -1,100 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#121212"
-    android:padding="16dp"
-    tools:context=".MainActivity">
+    android:padding="24dp"
+    android:background="#121212">
 
-    <!-- 顶部标题 -->
     <TextView
-        android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:text="QQ 升级任务自动化"
-        android:textColor="#FFFFFF"
         android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
 
-    <!-- 状态显示 -->
     <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:padding="12dp"
-        android:background="#2D2D2D"
-        android:text="就绪"
-        android:textColor="#B3FFFFFF"
+        android:text="检查中..."
         android:textSize="16sp"
-        android:gravity="center" />
+        android:layout_marginBottom="4dp" />
 
-    <!-- 三个按钮横排 -->
+    <TextView
+        android:id="@+id/tv_debug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="11sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="20dp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:orientation="horizontal"
-        android:weightSum="3">
+        android:layout_marginBottom="16dp">
 
         <Button
-            android:id="@+id/btnStart"
+            android:id="@+id/btn_toggle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="开始自动任务"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#4CAF50" />
+            android:text="开始"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
 
         <Button
-            android:id="@+id/btnOpenQQ"
+            android:id="@+id/btn_open_qq"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
             android:text="打开QQ"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#388E3C" />
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
 
         <Button
-            android:id="@+id/btnAccessibility"
+            android:id="@+id/btn_settings"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="无障碍设置"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#2D2D2D" />
-
+            android:text="无障碍"
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- 日志区域 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="执行日志"
+        android:textSize="14sp"
+        android:textColor="#AAAAAA"
+        android:layout_marginBottom="8dp" />
+
     <ScrollView
-        android:id="@+id/scrollLog"
+        android:id="@+id/sv_log"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
         android:background="#1E1E1E"
-        android:padding="8dp"
-        android:scrollbars="vertical">
+        android:padding="12dp">
 
         <TextView
-            android:id="@+id/tvLog"
+            android:id="@+id/tv_log"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#E0E0E0"
             android:textSize="12sp"
-            android:typeface="monospace"
-            android:lineSpacingExtra="2dp"
-            android:text="[系统] 日志区域就绪\n" />
-
+            android:fontFamily="monospace"
+            android:textColor="#B0BEC5"
+            android:lineSpacingExtra="4dp" />
     </ScrollView>
 
 </LinearLayout>

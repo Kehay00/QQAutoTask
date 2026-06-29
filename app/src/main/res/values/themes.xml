@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.QQAutoTask" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color -->
-        <item name="colorPrimary">#4CAF50</item>
-        <item name="colorPrimaryVariant">#388E3C</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <!-- Secondary brand color -->
-        <item name="colorSecondary">#81C784</item>
-        <item name="colorSecondaryVariant">#388E3C</item>
-        <item name="colorOnSecondary">#000000</item>
-        <!-- Background -->
-        <item name="android:colorBackground">#121212</item>
-        <item name="android:windowBackground">#121212</item>
-        <!-- Status bar -->
-        <item name="android:statusBarColor">#121212</item>
-        <item name="android:navigationBarColor">#121212</item>
-        <!-- Text -->
-        <item name="android:textColorPrimary">#FFFFFF</item>
-        <item name="android:textColorSecondary">#B3FFFFFF</item>
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#FF121212</item>
+        <item name="android:navigationBarColor">#FF121212</item>
     </style>
 </resources>
