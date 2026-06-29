@@ -6,6 +6,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
  */
 public class QQAutoService extends AccessibilityService implements TaskEngine.Callback {
 
+    private static final String TAG = "QQAutoService";
     private static final String CHANNEL_ID = "qq_auto_task_channel";
     private static final int NOTIFICATION_ID = 1001;
 
@@ -44,7 +46,7 @@ public class QQAutoService extends AccessibilityService implements TaskEngine.Ca
         engine = new TaskEngine(this);
         engine.setCallback(this);
         QQAutoServiceRef.setInstance(this);
-        log("[服务] 无障碍服务已创建");
+        Log.d(TAG, "[服务] 无障碍服务已创建");
     }
 
     @Override
@@ -62,7 +64,7 @@ public class QQAutoService extends AccessibilityService implements TaskEngine.Ca
 
     @Override
     public void onInterrupt() {
-        log("[服务] 无障碍服务被中断");
+        Log.d(TAG, "[服务] 无障碍服务被中断");
         if (engine != null) {
             engine.stopTask();
         }
@@ -71,7 +73,7 @@ public class QQAutoService extends AccessibilityService implements TaskEngine.Ca
     @Override
     public void onDestroy() {
         super.onDestroy();
-        log("[服务] 无障碍服务已销毁");
+        Log.d(TAG, "[服务] 无障碍服务已销毁");
         if (engine != null) {
             engine.stopTask();
         }
@@ -85,7 +87,7 @@ public class QQAutoService extends AccessibilityService implements TaskEngine.Ca
      */
     public void startAutoTask() {
         if (isTaskRunning) {
-            log("[服务] 任务已在运行中");
+            Log.d(TAG, "[服务] 任务已在运行中");
             return;
         }
         isTaskRunning = true;
@@ -170,7 +172,7 @@ public class QQAutoService extends AccessibilityService implements TaskEngine.Ca
     @Override
     public void onTaskComplete() {
         isTaskRunning = false;
-        log("[服务] 所有任务已完成");
+        Log.d(TAG, "[服务] 所有任务已完成");
         stopForeground(false);
     }
 
