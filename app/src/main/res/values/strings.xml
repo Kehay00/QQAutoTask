@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QQAutoTask</string>
+    <string name="accessibility_service_description">QQ自动升级任务无障碍服务，用于自动执行QQ的升级操作。</string>
+</resources>
