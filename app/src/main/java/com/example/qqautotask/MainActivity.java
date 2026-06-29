@@ -201,21 +201,15 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 检查本应用的无障碍服务是否已启用
+     * 使用 Settings.Secure 方式，兼容 Android 15
      */
     private boolean isAccessibilityServiceEnabled() {
-        AccessibilityManager am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
-        if (am == null) return false;
-
-        List<AccessibilityServiceInfo> enabledServices = am.getEnabledAccessibilityServiceList(
-                AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
-
-        String serviceName = getPackageName() + "/.QQAutoService";
-
-        for (AccessibilityServiceInfo info : enabledServices) {
-            if (info.getId().equals(serviceName)) {
-                return true;
-            }
-        }
-        return false;
+        String service = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(
+                getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+        if (enabledServices == null) return false;
+        return enabledServices.contains(service);
     }
 }
