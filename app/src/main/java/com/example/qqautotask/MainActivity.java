@@ -137,20 +137,18 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 打开QQ
+     * 使用直接 Intent 方式，兼容 Android 11+ 包可见性限制
      */
     private void openQQ() {
         try {
-            Intent intent = getPackageManager().getLaunchIntentForPackage(TaskConfig.QQ_PACKAGE);
-            if (intent != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                appendLog("[界面] 已启动QQ");
-            } else {
-                appendLog("[界面] 未安装QQ");
-                updateStatus("未安装QQ", false);
-            }
+            Intent intent = new Intent();
+            intent.setClassName("com.tencent.mobileqq", "com.tencent.mobileqq.activity.SplashActivity");
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            appendLog("[界面] 已启动QQ");
         } catch (Exception e) {
-            appendLog("[界面] 启动QQ失败: " + e.getMessage());
+            appendLog("[界面] 未安装QQ");
+            updateStatus("未安装QQ", false);
         }
     }
 
@@ -201,15 +199,31 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 检查本应用的无障碍服务是否已启用
-     * 使用 Settings.Secure 方式，兼容 Android 15
+     * 使用 Settings.Secure 方式，兼容 Android 15 / HyperOS
      */
     private boolean isAccessibilityServiceEnabled() {
-        String service = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
-        String enabledServices = Settings.Secure.getString(
-                getContentResolver(),
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        );
-        if (enabledServices == null) return false;
-        return enabledServices.contains(service);
+        try {
+            String expectedId = getPackageName() + "/" + QQAutoService.class.getCanonicalName();
+            String expectedId2 = getPackageName() + "/." + QQAutoService.class.getSimpleName();
+
+            String enabledServices = Settings.Secure.getString(
+                    getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            );
+
+            if (enabledServices == null || enabledServices.isEmpty()) return false;
+
+            // 澎湃OS 可能用 : 分隔多个服务
+            String[] services = enabledServices.split(":");
+            for (String service : services) {
+                service = service.trim();
+                if (service.equalsIgnoreCase(expectedId) || service.equalsIgnoreCase(expectedId2)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
